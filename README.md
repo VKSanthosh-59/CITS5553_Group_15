@@ -1,127 +1,152 @@
 # ESRI Comparison Tool
 
-A full-stack tool for comparing original vs deep-learning imputed assay data.
-Frontend is built with **React + Vite**, and backend is built with **FastAPI**.
+A full-stack tool for comparing original vs deep-learning (DL) imputed geochemical assay data for mineral exploration in Western Australia.
+
+**Frontend:** React + Vite + TailwindCSS + Plotly.js  
+**Backend:** FastAPI + Pandas + Matplotlib + PyProj
 
 ---
 
-## 🚀 Frontend (React + Vite)
-
-### 1. Prerequisites
-
-* Node.js 20+
-* npm 9+
-
-### 2. Setup
-
-```bash
-cd frontend-esri
-npm install
-npm run dev
-```
-
-* App runs at [http://localhost:5173](http://localhost:5173)
-* Code changes hot-reload automatically
-
-### 3. Production build
-
-```bash
-npm run build
-npm run preview
-```
-
-### 4. Structure
+## � Project Structure
 
 ```
-frontend-esri/
- ├─ src/               # React components & app logic
- ├─ public/            # Static assets
- ├─ package.json       # Scripts & deps
- ├─ vite.config.ts     # Vite config
- ├─ tsconfig.json      # TypeScript config
- ├─ tailwind.config.js # Tailwind config
- ├─ postcss.config.js  # PostCSS config
+CITS5553_Group_15/
+├── backend-esri/            # FastAPI backend
+│   ├── app/
+│   │   ├── main.py          # FastAPI app, CORS, router registration
+│   │   ├── models/
+│   │   │   └── schemas.py   # Pydantic response models
+│   │   ├── routers/
+│   │   │   ├── data.py      # /api/data endpoints (column extraction)
+│   │   │   └── analysis.py  # /api/analysis (stats, plots, comparison, export)
+│   │   └── services/
+│   │       ├── io_service.py    # CSV/DBF/ZIP parsing, encoding detection
+│   │       └── comparisons.py  # Grid comparison methods (mean, median, max)
+│   └── requirements.txt
+├── frontend-esri/           # React + Vite frontend
+│   ├── src/
+│   │   ├── main.tsx                  # Entry point
+│   │   ├── ESRI3DComparisonApp.tsx   # Main application component
+│   │   ├── api/
+│   │   │   ├── data.ts       # API client for data endpoints
+│   │   │   └── analysis.ts   # API client for analysis endpoints
+│   │   └── index.css         # Tailwind directives + base styles
+│   ├── package.json
+│   ├── vite.config.ts        # Vite config (API proxy to backend)
+│   ├── tailwind.config.js
+│   └── tsconfig.json
+├── experimental/            # Standalone analysis scripts & notebooks
+│   ├── comparisons.py       # Extended comparison methods (7 methods)
+│   ├── clean_parquet_lib.py  # Data cleaning & Parquet I/O library
+│   ├── bench_clean_parquet_batch.py  # Pipeline benchmarking
+│   └── *.ipynb              # EDA notebooks
+├── data/                    # Sample geospatial data
+├── Documentation/           # Project documentation
+└── README.md
 ```
-
-### 5. Common issues
-
-* **“vite is not recognized” (Windows)**
-  Run `npm install`, then `npx vite` or `npm run dev`.
-  If it still fails, delete `node_modules` and `package-lock.json`, then reinstall.
-
-* **Port already in use (5173)**
-  `npm run dev -- --port 5174` (or kill the process using 5173).
 
 ---
 
-## ⚙️ Backend (FastAPI)
+## 🚀 Quick Start
 
-The backend handles data upload, cleaning, statistics, and plots.
+### Prerequisites
 
-### 1. Prerequisites
+- **Python 3.10+** with `pip` and `venv`
+- **Node.js 20+** with `npm 9+`
 
-* Python 3.10+
-* pip
-* `venv` for virtual environments
-
-### 2. Setup
+### 1. Start the Backend
 
 ```bash
 cd backend-esri
 
-# create and activate venv
+# Create and activate virtual environment
 python -m venv venv
-source venv/bin/activate   # Mac/Linux
-venv\Scripts\activate      # Windows
+source venv/bin/activate       # macOS / Linux
+venv\Scripts\activate          # Windows (cmd)
+.\venv\Scripts\Activate.ps1    # Windows (PowerShell)
 
-# install dependencies
+# Install dependencies
 pip install -r requirements.txt
-```
 
-### 3. Run the server
-
-```bash
+# Run the server
 uvicorn app.main:app --reload
 ```
 
-* Server: [http://127.0.0.1:8000](http://127.0.0.1:8000)
+Backend runs at **http://127.0.0.1:8000**
 
-### 4. Structure
+### 2. Start the Frontend
 
-```
-backend-esri/
- app/
- ├─ main.py           # FastAPI app & router registration
- ├─ routers/
- │   ├─ data.py       # /api/data endpoints (column extraction)
- │   └─ analysis.py   # /api/analysis (stats, plots, comparison)
- ├─ services/
- │   ├─ io_service.py # CSV/ZIP parsing, encoding detection, DataFrame utils
- │   └─ comparisons.py# grid stat methods (mean, median, max)
- └─ schemas.py        # Pydantic models (if used)
+```bash
+cd frontend-esri
+
+# Install dependencies
+npm install
+
+# Run the dev server
+npm run dev
 ```
 
-### 5. Key API endpoints
+Frontend runs at **http://localhost:5173**
 
-* `POST /api/data/columns` — extract column names from CSV/ZIP
-* `POST /api/analysis/summary` — get stats (count, mean, median, max, std)
-* `POST /api/analysis/plots` — histograms + QQ plot as base64 PNGs
-* `POST /api/analysis/comparison` — grid meta + arrays
-* `GET /api/health` — backend health check
+### 3. Open the App
 
-### 6. Common issues
+Navigate to [http://localhost:5173](http://localhost:5173) in your browser.
 
-* **Module not found**: Always run `uvicorn` from inside `backend/`.
-* **Port already in use**: Run `uvicorn app.main:app --reload --port 8000`.
----
-
-## 🔗 Frontend + Backend integration
-
-* CORS is already enabled in the backend for `http://localhost:5173`.
-* When you run both services:
-
-  * Start backend first: `uvicorn app.main:app --reload`
-  * Then start frontend: `npm run dev`
-* The frontend automatically calls the backend at `http://127.0.0.1:8000/api/...`.
+> **Note:** Start the backend first, then the frontend.
 
 ---
+
+## 🔗 Frontend ↔ Backend Integration
+
+- **CORS** is enabled in the backend for `http://localhost:5173` and `http://localhost:5174`.
+- The Vite dev server **proxies** all `/api/*` requests to `http://localhost:8000` automatically.
+- No manual URL configuration is needed in development.
+
+---
+
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/health` | Backend health check |
+| `POST` | `/api/data/columns` | Extract column names from uploaded CSV/DBF/ZIP files |
+| `POST` | `/api/analysis/summary` | Compute summary statistics (count, mean, median, max, std) |
+| `POST` | `/api/analysis/plots` | Generate histograms + QQ plot as base64 PNGs |
+| `POST` | `/api/analysis/plots-data` | Return plot data as JSON (for interactive Plotly charts) |
+| `POST` | `/api/analysis/comparison` | Run grid-based comparison and return heatmap arrays |
+| `POST` | `/api/analysis/export/plots` | Export selected plots as a ZIP of PNGs |
+
+---
+
+## 🏗️ Production Build (Frontend)
+
+```bash
+cd frontend-esri
+npm run build
+npm run preview
+```
+
+---
+
+## ❓ Troubleshooting
+
+### Frontend
+
+| Issue | Solution |
+|-------|----------|
+| `"vite is not recognized"` | Run `npm install` first. If it persists, delete `node_modules` and `package-lock.json`, then reinstall. |
+| Port 5173 already in use | Run `npm run dev -- --port 5174` or kill the process using port 5173. |
+
+### Backend
+
+| Issue | Solution |
+|-------|----------|
+| `ModuleNotFoundError` | Ensure you run `uvicorn` from inside `backend-esri/`, not the project root. |
+| Port 8000 already in use | Run `uvicorn app.main:app --reload --port 8001` |
+| `No module named 'simpledbf'` | Run `pip install -r requirements.txt` inside your virtual environment. |
+
+---
+
+## 📄 License
+
+University of Western Australia — CITS5553 Capstone Project (Group 15)

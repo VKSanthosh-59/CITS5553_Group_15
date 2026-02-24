@@ -437,13 +437,7 @@ async def export_plots(
             df_o = dataframe_from_upload_cols(original_file, [original_easting, original_northing, original_assay])
             df_d = dataframe_from_upload_cols(dl_file, [dl_easting, dl_northing, dl_assay])
 
-            # clean
-            def _to_float(df, cols):
-                df = df.copy()
-                for c in cols:
-                    df[c] = pd.to_numeric(df[c], errors="coerce")
-                return df.dropna()
-
+            # clean (reuse module-level helper)
             df_o = _to_float(df_o, [original_easting, original_northing, original_assay])
             df_d = _to_float(df_d, [dl_easting, dl_northing, dl_assay])
             df_o = df_o[df_o[original_assay] > 0]
@@ -451,9 +445,7 @@ async def export_plots(
             if df_o.empty or df_d.empty:
                 raise HTTPException(status_code=400, detail="No valid rows after cleaning for heatmaps.")
 
-            # decide units and possibly project (same logic as /comparison)
-            def _looks_like_degrees(east: pd.Series, north: pd.Series) -> bool:
-                return bool(east.between(-180, 180).all() and north.between(-90, 90).all())
+            # decide units and possibly project (reuse module-level helper)
 
             looks_deg = _looks_like_degrees(
                 pd.concat([df_o[original_easting], df_d[dl_easting]], ignore_index=True),
@@ -473,14 +465,7 @@ async def export_plots(
                 e_col_o, n_col_o = original_easting, original_northing
                 e_col_d, n_col_d = dl_easting, dl_northing
 
-            # grid meta (same math as /comparison)
-            def _grid_meta_xy(east, north, cell_x, cell_y):
-                xmin = float(np.floor(east.min() / cell_x) * cell_x)
-                ymin = float(np.floor(north.min() / cell_y) * cell_y)
-                nx = int(((east.max() - xmin) // cell_x) + 1)
-                ny = int(((north.max() - ymin) // cell_y) + 1)
-                return xmin, ymin, nx, ny
-
+            # grid meta (reuse module-level helper)
             cell_x = cell_y = float(grid_size)
             xmin, ymin, nx, ny = _grid_meta_xy(
                 pd.concat([df_o[e_col_o], df_d[e_col_d]], ignore_index=True),
@@ -488,12 +473,7 @@ async def export_plots(
                 cell_x, cell_y
             )
 
-            # index into grid and rename assay to Te_ppm to match comparison convention
-            def _index_cols_xy(df, easting, northing, xmin, ymin, cell_x, cell_y):
-                df = df.copy()
-                df["grid_ix"] = ((df[easting] - xmin) // cell_x).astype(int)
-                df["grid_iy"] = ((df[northing] - ymin) // cell_y).astype(int)
-                return df
+            # index into grid and rename assay to Te_ppm (reuse module-level helper)
 
             o_idx = _index_cols_xy(df_o, e_col_o, n_col_o, xmin, ymin, cell_x, cell_y).rename(columns={original_assay: "Te_ppm"})
             d_idx = _index_cols_xy(df_d, e_col_d, n_col_d, xmin, ymin, cell_x, cell_y).rename(columns={dl_assay: "Te_ppm"})
@@ -582,14 +562,15 @@ async def export_plots(
             if flags.get("originalHeatmap"):
                 fig = plt.figure(figsize=(12, 7)); ax = fig.add_subplot(111)
                 z = np.where(np.isfinite(arr_orig) & (arr_orig > 0), np.log10(arr_orig), np.nan)
+
                 
                 # Get dynamic legend range
                 vmin, vmax, ticks, tick_labels = get_legend_range("original", arr_orig, method)
                 
-                im = ax.imshow(z.T, origin="lower", extent=[x.min(), x.max(), y.min(), y.max()], 
+                im = ax.imshow(z, origin="lower", extent=[x.min(), x.max(), y.min(), y.max()], 
                               aspect="equal", cmap="viridis", vmin=vmin, vmax=vmax)
-                # Add black dots for data points
-                ax.scatter(df_o[e_col_o], df_o[n_col_o], c='black', s=4, alpha=0.7, marker='o')
+                # Add black dots for data points (downsampled for consistency)
+                ax.scatter(o_pts[:, 0], o_pts[:, 1], c='black', s=4, alpha=0.7, marker='o')
                 ax.set_title("Original (log10)", fontsize=14, fontweight='bold')
                 ax.set_xlabel("Easting (m)", fontsize=12)
                 ax.set_ylabel("Northing (m)", fontsize=12)
@@ -622,7 +603,7 @@ async def export_plots(
                 # Get dynamic legend range
                 vmin, vmax, ticks, tick_labels = get_legend_range("dl", arr_dl, method)
                 
-                im = ax.imshow(z.T, origin="lower", extent=[x.min(), x.max(), y.min(), y.max()], 
+                im = ax.imshow(z, origin="lower", extent=[x.min(), x.max(), y.min(), y.max()], 
                               aspect="equal", cmap="viridis", vmin=vmin, vmax=vmax)
                 # Add black dots for data points
                 ax.scatter(d_pts[:, 0], d_pts[:, 1], c='black', s=4, alpha=0.7, marker='o')
@@ -664,7 +645,7 @@ async def export_plots(
                 n_bins = len(colors)
                 custom_cmap = LinearSegmentedColormap.from_list('custom_diverging', colors, N=n_bins)
                 
-                im = ax.imshow(arr_cmp.T, origin="lower", vmin=vmin, vmax=vmax, cmap=custom_cmap,
+                im = ax.imshow(arr_cmp, origin="lower", vmin=vmin, vmax=vmax, cmap=custom_cmap,
                                extent=[x.min(), x.max(), y.min(), y.max()], aspect="equal")
                 # Add black dots for both original and DL data points
                 ax.scatter(o_pts[:, 0], o_pts[:, 1], c='black', s=4, alpha=0.7, marker='o', label='Original')
